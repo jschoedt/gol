@@ -1,0 +1,202 @@
+package gol
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"strings"
+)
+
+const cloudTraceContext = "X-Cloud-Trace-Context"
+
+func init() {
+	// Disable log prefixes such as the default timestamp.
+	// Prefix text prevents the message from being parsed as JSON.
+	// A timestamp is added when shipping logs to Stackdriver.
+	log.SetFlags(0)
+}
+
+// Entry defines a log entry.
+type entry struct {
+	Message  string `json:"message"`
+	Severity string `json:"severity,omitempty"`
+	Trace    string `json:"logging.googleapis.com/trace,omitempty"`
+
+	// Stackdriver Log Viewer allows filtering and display of this as `jsonPayload.component`.
+	Component string `json:"component,omitempty"`
+}
+
+// String renders an entry structure to the JSON format expected by Stackdriver.
+func (e entry) String() string {
+	if e.Severity == "" {
+		e.Severity = "INFO"
+	}
+	out, err := json.Marshal(e)
+	if err != nil {
+		log.Printf("json.Marshal: %v", err)
+	}
+	return string(out)
+}
+
+// Google Cloud Logger see: https://cloud.google.com/logging
+type GCLogger struct {
+	logName   string
+	projectID string
+	level     Level
+}
+
+func NewGCLogger(projectID, logName string) *GCLogger {
+	return &GCLogger{
+		logName:   logName,
+		projectID: projectID,
+		level:     Uninitialized,
+	}
+}
+
+// Tracef logs message at Trace level.
+func (logger *GCLogger) Tracef(format string, args ...interface{}) {
+	logger.Printf(Trace, format, args)
+}
+
+// TraceCtxf logs message at Trace level.
+func (logger *GCLogger) TraceCtxf(ctx context.Context, format string, args ...interface{}) {
+	logger.PrintCtxf(ctx, Trace, format, args)
+}
+
+// TraceEnabled checks if Trace level is enabled.
+func (logger *GCLogger) TraceEnabled() bool {
+	return logger.loggable(Trace)
+}
+
+// Debugf logs message at Debug level.
+func (logger *GCLogger) Debugf(format string, args ...interface{}) {
+	logger.Printf(Debug, format, args)
+}
+
+// DebugCtxf logs message at Trace level.
+func (logger *GCLogger) DebugCtxf(ctx context.Context, format string, args ...interface{}) {
+	logger.PrintCtxf(ctx, Debug, format, args)
+}
+
+// DebugEnabled checks if Debug level is enabled.
+func (logger *GCLogger) DebugEnabled() bool {
+	return logger.loggable(Debug)
+}
+
+// Infof logs message at Info level.
+func (logger *GCLogger) Infof(format string, args ...interface{}) {
+	logger.Printf(Info, format, args)
+}
+
+// InfoCtxf logs message at Trace level.
+func (logger *GCLogger) InfoCtxf(ctx context.Context, format string, args ...interface{}) {
+	logger.PrintCtxf(ctx, Info, format, args)
+}
+
+// InfoEnabled checks if Info level is enabled.
+func (logger *GCLogger) InfoEnabled() bool {
+	return logger.loggable(Info)
+}
+
+// Warnf logs message at Warning level.
+func (logger *GCLogger) Warnf(format string, args ...interface{}) {
+	logger.Printf(Warn, format, args)
+}
+
+// WarnCtxf logs message at Trace level.
+func (logger *GCLogger) WarnCtxf(ctx context.Context, format string, args ...interface{}) {
+	logger.PrintCtxf(ctx, Warn, format, args)
+}
+
+// WarnEnabled checks if Warning level is enabled.
+func (logger *GCLogger) WarnEnabled() bool {
+	return logger.loggable(Warn)
+}
+
+// Errorf logs message at Error level.
+func (logger *GCLogger) Errorf(format string, args ...interface{}) {
+	logger.Printf(Error, format, args)
+}
+
+// ErrorCtxf logs message at Trace level.
+func (logger *GCLogger) ErrorCtxf(ctx context.Context, format string, args ...interface{}) {
+	logger.PrintCtxf(ctx, Error, format, args)
+}
+
+// ErrorEnabled checks if Error level is enabled.
+func (logger *GCLogger) ErrorEnabled() bool {
+	return logger.loggable(Error)
+}
+
+// Level returns level of this logger or parent if not set.
+func (logger *GCLogger) Level() Level {
+	for logger != nil {
+		if logger.level != Uninitialized {
+			return logger.level
+		}
+	}
+	return Off
+}
+
+// SetLevel changes logging level of this logger.
+func (logger *GCLogger) SetLevel(level Level) {
+	logger.level = level
+}
+
+// loggable checks if the given logging level is enabled within this logger.
+func (logger *GCLogger) loggable(level Level) bool {
+	return level >= logger.Level()
+}
+
+// log performs logging with given parameters.
+func (logger *GCLogger) Printf(level Level, format string, args []interface{}) {
+	logger.PrintCtxf(context.TODO(), level, format, args)
+}
+
+var gclLevelStrings = map[Level]string{
+	Trace: "DEFAULT",
+	Debug: "DEBUG",
+	Info:  "INFO",
+	Warn:  "WARNING",
+	Error: "ERROR",
+}
+
+func (logger *GCLogger) PrintCtxf(ctx context.Context, trace Level, format string, args []interface{}) {
+	if trace < logger.level {
+		return
+	}
+	entry := entry{
+		Severity:  gclLevelStrings[trace],
+		Message:   fmt.Sprintf(format, args),
+		Component: logger.logName,
+	}
+
+	if tokenStr, ok := ctx.Value(cloudTraceContext).(string); ok {
+		entry.Trace = tokenStr
+	}
+
+	log.Println(entry)
+}
+
+// Handler to add request context to logs see: https://cloud.google.com/endpoints/docs/openapi/tracing
+func (logger *GCLogger) GCLoggerHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var trace string
+		if logger.projectID != "" {
+			traceHeader := r.Header.Get("X-Cloud-Trace-Context")
+			traceParts := strings.Split(traceHeader, "/")
+			if len(traceParts) > 0 && len(traceParts[0]) > 0 {
+				trace = fmt.Sprintf("projects/%s/traces/%s", logger.projectID, traceParts[0])
+			}
+		}
+		if trace == "" {
+			h.ServeHTTP(w, r)
+		} else {
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, cloudTraceContext, trace)
+			h.ServeHTTP(w, r.WithContext(ctx))
+		}
+	})
+}

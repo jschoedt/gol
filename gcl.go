@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/goburrow/gol"
 	"log"
 	"net/http"
 	"strings"
@@ -44,126 +45,126 @@ func (e entry) String() string {
 type GCLogger struct {
 	logName   string
 	projectID string
-	level     Level
+	level     gol.Level
 }
 
 func NewGCLogger(projectID, logName string) *GCLogger {
 	return &GCLogger{
 		logName:   logName,
 		projectID: projectID,
-		level:     Uninitialized,
+		level:     gol.Uninitialized,
 	}
 }
 
 // Tracef logs message at Trace level.
 func (logger *GCLogger) Tracef(format string, args ...interface{}) {
-	logger.Printf(Trace, format, args)
+	logger.Printf(gol.Trace, format, args)
 }
 
 // TraceCtxf logs message at Trace level.
 func (logger *GCLogger) TraceCtxf(ctx context.Context, format string, args ...interface{}) {
-	logger.PrintCtxf(ctx, Trace, format, args)
+	logger.PrintCtxf(ctx, gol.Trace, format, args)
 }
 
 // TraceEnabled checks if Trace level is enabled.
 func (logger *GCLogger) TraceEnabled() bool {
-	return logger.loggable(Trace)
+	return logger.loggable(gol.Trace)
 }
 
 // Debugf logs message at Debug level.
 func (logger *GCLogger) Debugf(format string, args ...interface{}) {
-	logger.Printf(Debug, format, args)
+	logger.Printf(gol.Debug, format, args)
 }
 
 // DebugCtxf logs message at Trace level.
 func (logger *GCLogger) DebugCtxf(ctx context.Context, format string, args ...interface{}) {
-	logger.PrintCtxf(ctx, Debug, format, args)
+	logger.PrintCtxf(ctx, gol.Debug, format, args)
 }
 
 // DebugEnabled checks if Debug level is enabled.
 func (logger *GCLogger) DebugEnabled() bool {
-	return logger.loggable(Debug)
+	return logger.loggable(gol.Debug)
 }
 
 // Infof logs message at Info level.
 func (logger *GCLogger) Infof(format string, args ...interface{}) {
-	logger.Printf(Info, format, args)
+	logger.Printf(gol.Info, format, args)
 }
 
 // InfoCtxf logs message at Trace level.
 func (logger *GCLogger) InfoCtxf(ctx context.Context, format string, args ...interface{}) {
-	logger.PrintCtxf(ctx, Info, format, args)
+	logger.PrintCtxf(ctx, gol.Info, format, args)
 }
 
 // InfoEnabled checks if Info level is enabled.
 func (logger *GCLogger) InfoEnabled() bool {
-	return logger.loggable(Info)
+	return logger.loggable(gol.Info)
 }
 
 // Warnf logs message at Warning level.
 func (logger *GCLogger) Warnf(format string, args ...interface{}) {
-	logger.Printf(Warn, format, args)
+	logger.Printf(gol.Warn, format, args)
 }
 
 // WarnCtxf logs message at Trace level.
 func (logger *GCLogger) WarnCtxf(ctx context.Context, format string, args ...interface{}) {
-	logger.PrintCtxf(ctx, Warn, format, args)
+	logger.PrintCtxf(ctx, gol.Warn, format, args)
 }
 
 // WarnEnabled checks if Warning level is enabled.
 func (logger *GCLogger) WarnEnabled() bool {
-	return logger.loggable(Warn)
+	return logger.loggable(gol.Warn)
 }
 
 // Errorf logs message at Error level.
 func (logger *GCLogger) Errorf(format string, args ...interface{}) {
-	logger.Printf(Error, format, args)
+	logger.Printf(gol.Error, format, args)
 }
 
 // ErrorCtxf logs message at Trace level.
 func (logger *GCLogger) ErrorCtxf(ctx context.Context, format string, args ...interface{}) {
-	logger.PrintCtxf(ctx, Error, format, args)
+	logger.PrintCtxf(ctx, gol.Error, format, args)
 }
 
 // ErrorEnabled checks if Error level is enabled.
 func (logger *GCLogger) ErrorEnabled() bool {
-	return logger.loggable(Error)
+	return logger.loggable(gol.Error)
 }
 
 // Level returns level of this logger or parent if not set.
-func (logger *GCLogger) Level() Level {
+func (logger *GCLogger) Level() gol.Level {
 	for logger != nil {
-		if logger.level != Uninitialized {
+		if logger.level != gol.Uninitialized {
 			return logger.level
 		}
 	}
-	return Off
+	return gol.Off
 }
 
 // SetLevel changes logging level of this logger.
-func (logger *GCLogger) SetLevel(level Level) {
+func (logger *GCLogger) SetLevel(level gol.Level) {
 	logger.level = level
 }
 
 // loggable checks if the given logging level is enabled within this logger.
-func (logger *GCLogger) loggable(level Level) bool {
+func (logger *GCLogger) loggable(level gol.Level) bool {
 	return level >= logger.Level()
 }
 
 // log performs logging with given parameters.
-func (logger *GCLogger) Printf(level Level, format string, args []interface{}) {
+func (logger *GCLogger) Printf(level gol.Level, format string, args []interface{}) {
 	logger.PrintCtxf(context.TODO(), level, format, args)
 }
 
-var gclLevelStrings = map[Level]string{
-	Trace: "DEFAULT",
-	Debug: "DEBUG",
-	Info:  "INFO",
-	Warn:  "WARNING",
-	Error: "ERROR",
+var gclLevelStrings = map[gol.Level]string{
+	gol.Trace: "DEFAULT",
+	gol.Debug: "DEBUG",
+	gol.Info:  "INFO",
+	gol.Warn:  "WARNING",
+	gol.Error: "ERROR",
 }
 
-func (logger *GCLogger) PrintCtxf(ctx context.Context, trace Level, format string, args []interface{}) {
+func (logger *GCLogger) PrintCtxf(ctx context.Context, trace gol.Level, format string, args []interface{}) {
 	if trace < logger.level {
 		return
 	}

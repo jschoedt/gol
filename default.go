@@ -40,6 +40,18 @@ func (logger *DefaultCtxLogger) ErrorCtxf(ctx context.Context, format string, ar
 	logger.Errorf(format, args)
 }
 
+type GAELoggerFac struct {
+	projectId string
+}
+
+func (fac *GAELoggerFac) GetLogger(name string) gol.Logger {
+	return NewGCLogger(fac.projectId, name)
+}
+
+func NewGAELoggerFactory(projectId string) *GAELoggerFac {
+	return &GAELoggerFac{projectId}
+}
+
 type DefaultCtxLoggerFactory struct {
 }
 

@@ -39,3 +39,15 @@ func (logger *DefaultCtxLogger) WarnCtxf(ctx context.Context, format string, arg
 func (logger *DefaultCtxLogger) ErrorCtxf(ctx context.Context, format string, args ...interface{}) {
 	logger.Printf(gol.Error, format, args)
 }
+
+type DefaultCtxLoggerFactory struct {
+	projectId string
+}
+
+func NewDefaultCtxLoggerFactory(projectId string) *DefaultCtxLoggerFactory {
+	return &DefaultCtxLoggerFactory{projectId}
+}
+
+func (fac *DefaultCtxLoggerFactory) GetLogger(name string) gol.Logger {
+	return NewGCLogger(fac.projectId, name)
+}

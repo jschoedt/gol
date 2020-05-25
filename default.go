@@ -10,7 +10,7 @@ type DefaultCtxLogger struct {
 	gol.DefaultLogger
 }
 
-func NewCtxLogger(name string, parent *DefaultCtxLogger) *DefaultCtxLogger {
+func NewCtxLogger(name string) *DefaultCtxLogger {
 	logger := gol.New(name, nil)
 	return &DefaultCtxLogger{*logger}
 }
@@ -41,13 +41,12 @@ func (logger *DefaultCtxLogger) ErrorCtxf(ctx context.Context, format string, ar
 }
 
 type DefaultCtxLoggerFactory struct {
-	projectId string
 }
 
-func NewDefaultCtxLoggerFactory(projectId string) *DefaultCtxLoggerFactory {
-	return &DefaultCtxLoggerFactory{projectId}
+func NewDefaultCtxLoggerFactory() *DefaultCtxLoggerFactory {
+	return &DefaultCtxLoggerFactory{}
 }
 
 func (fac *DefaultCtxLoggerFactory) GetLogger(name string) gol.Logger {
-	return NewGCLogger(fac.projectId, name)
+	return NewCtxLogger(name)
 }

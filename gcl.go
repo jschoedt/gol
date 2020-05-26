@@ -21,6 +21,7 @@ func init() {
 
 // Entry defines a log entry.
 type entry struct {
+	LogName  string `json:"logName,omitempty"`
 	Message  string `json:"message"`
 	Severity string `json:"severity,omitempty"`
 	Trace    string `json:"logging.googleapis.com/trace,omitempty"`
@@ -43,16 +44,18 @@ func (e entry) String() string {
 
 // Google Cloud Logger see: https://cloud.google.com/logging
 type GCLogger struct {
-	logName   string
-	projectID string
-	level     gol.Level
+	logName       string
+	projectID     string
+	level         gol.Level
+	componentName string
 }
 
-func NewGCLogger(projectID, logName string) *GCLogger {
+func NewGCLogger(projectID, logName string, componentName string) *GCLogger {
 	return &GCLogger{
-		logName:   logName,
-		projectID: projectID,
-		level:     gol.Uninitialized,
+		logName:       logName,
+		componentName: componentName,
+		projectID:     projectID,
+		level:         gol.Uninitialized,
 	}
 }
 
@@ -169,9 +172,10 @@ func (logger *GCLogger) PrintCtxf(ctx context.Context, trace gol.Level, format s
 		return
 	}
 	entry := entry{
+		LogName:   logger.logName,
 		Severity:  gclLevelStrings[trace],
 		Message:   fmt.Sprintf(format, args),
-		Component: logger.logName,
+		Component: logger.componentName,
 	}
 
 	if tokenStr, ok := ctx.Value(cloudTraceContext).(string); ok {

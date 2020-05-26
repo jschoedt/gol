@@ -1,6 +1,7 @@
 package gol
 
 import (
+	"cloud.google.com/go/logging"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -21,10 +22,8 @@ func init() {
 
 // Entry defines a log entry.
 type entry struct {
-	LogName  string `json:"logName,omitempty"`
 	Message  string `json:"message"`
 	Severity string `json:"severity,omitempty"`
-	Trace    string `json:"logging.googleapis.com/trace,omitempty"`
 
 	// Stackdriver Log Viewer allows filtering and display of this as `jsonPayload.component`.
 	Component string `json:"component,omitempty"`
@@ -172,17 +171,28 @@ func (logger *GCLogger) PrintCtxf(ctx context.Context, trace gol.Level, format s
 		return
 	}
 	entry := entry{
-		LogName:   fmt.Sprintf("projects/%s/logs/%s", logger.projectID, logger.logName),
 		Severity:  gclLevelStrings[trace],
 		Message:   fmt.Sprintf(format, args),
 		Component: logger.componentName,
 	}
 
+	gcEntry := logging.Entry{
+		LogName: fmt.Sprintf("projects/%s/logs/%s", logger.projectID, logger.logName),
+		Payload: entry}
+
 	if tokenStr, ok := ctx.Value(cloudTraceContext).(string); ok {
-		entry.Trace = tokenStr
+		gcEntry.Trace = tokenStr
 	}
 
-	log.Println(entry)
+	// Creates a client.
+	client, err := logging.NewClient(ctx, logger.projectID)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	defer client.Close()
+
+	gcLogger := client.Logger(logger.logName)
+	gcLogger.Log(gcEntry)
 }
 
 // Handler to add request context to logs see: https://cloud.google.com/endpoints/docs/openapi/tracing

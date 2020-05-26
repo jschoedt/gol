@@ -42,15 +42,14 @@ func (logger *DefaultCtxLogger) ErrorCtxf(ctx context.Context, format string, ar
 
 type GAELoggerFac struct {
 	projectId string
-	logName   string
-}
-
-func NewGAELoggerFactory(projectId, logName string) *GAELoggerFac {
-	return &GAELoggerFac{projectId, logName}
 }
 
 func (fac *GAELoggerFac) GetLogger(componentName string) gol.Logger {
-	return NewGCLogger(fac.projectId, fac.logName, componentName)
+	return NewGCLogger(fac.projectId, componentName)
+}
+
+func NewGAELoggerFactory(projectId string) *GAELoggerFac {
+	return &GAELoggerFac{projectId}
 }
 
 type DefaultCtxLoggerFactory struct {

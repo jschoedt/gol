@@ -171,14 +171,13 @@ func (logger *GCLogger) PrintCtxf(ctx context.Context, trace gol.Level, format s
 		return
 	}
 	entry := entry{
-		Severity:  gclLevelStrings[trace],
 		Message:   fmt.Sprintf(format, args),
 		Component: logger.componentName,
 	}
 
 	gcEntry := logging.Entry{
-		LogName: fmt.Sprintf("projects/%s/logs/%s", logger.projectID, logger.logName),
-		Payload: entry}
+		Severity: logging.ParseSeverity(gclLevelStrings[trace]),
+		Payload:  entry}
 
 	if tokenStr, ok := ctx.Value(cloudTraceContext).(string); ok {
 		gcEntry.Trace = tokenStr

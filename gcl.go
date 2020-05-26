@@ -171,23 +171,18 @@ func (logger *GCLogger) PrintCtxf(ctx context.Context, trace gol.Level, format s
 	if trace < logger.level {
 		return
 	}
-	e := entry{
+	entry := entry{
 		LogName:   fmt.Sprintf("projects/%s/logs/%s", logger.projectID, logger.logName),
 		Severity:  gclLevelStrings[trace],
 		Message:   fmt.Sprintf(format, args),
 		Component: logger.componentName,
 	}
 
-	s := struct {
-		LogName string `json:"logName"`
-		Payload entry  `json:"jsonPayload"`
-	}{fmt.Sprintf("projects/%s/logs/%s", logger.projectID, logger.logName), e}
-
 	if tokenStr, ok := ctx.Value(cloudTraceContext).(string); ok {
-		e.Trace = tokenStr
+		entry.Trace = tokenStr
 	}
 
-	log.Println(s)
+	log.Println(entry)
 }
 
 // Handler to add request context to logs see: https://cloud.google.com/endpoints/docs/openapi/tracing

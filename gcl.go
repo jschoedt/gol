@@ -192,6 +192,7 @@ func (logger *GCLogger) PrintCtxf(ctx context.Context, trace gol.Level, format s
 
 	gcLogger := client.Logger(logger.logName)
 	gcLogger.Log(gcEntry)
+	gcLogger.Flush()
 }
 
 // Handler to add request context to logs see: https://cloud.google.com/endpoints/docs/openapi/tracing

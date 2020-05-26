@@ -172,7 +172,7 @@ func (logger *GCLogger) PrintCtxf(ctx context.Context, trace gol.Level, format s
 		return
 	}
 	entry := entry{
-		LogName:   logger.logName,
+		LogName:   fmt.Sprintf("projects/%s/logs/%s", logger.projectID, logger.logName),
 		Severity:  gclLevelStrings[trace],
 		Message:   fmt.Sprintf(format, args),
 		Component: logger.componentName,

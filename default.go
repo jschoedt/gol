@@ -17,27 +17,27 @@ func NewCtxLogger(name string) *DefaultCtxLogger {
 
 // TraceCtxf logs message at Trace level.
 func (logger *DefaultCtxLogger) TraceCtxf(ctx context.Context, format string, args ...interface{}) {
-	logger.Tracef(format, args)
+	logger.Tracef(format, args...)
 }
 
 // DebugCtxf logs message at Debug level.
 func (logger *DefaultCtxLogger) DebugCtxf(ctx context.Context, format string, args ...interface{}) {
-	logger.Debugf(format, args)
+	logger.Debugf(format, args...)
 }
 
 // InfoCtxf logs message at Info level.
 func (logger *DefaultCtxLogger) InfoCtxf(ctx context.Context, format string, args ...interface{}) {
-	logger.Infof(format, args)
+	logger.Infof(format, args...)
 }
 
 // WarnCtxf logs message at Warning level.
 func (logger *DefaultCtxLogger) WarnCtxf(ctx context.Context, format string, args ...interface{}) {
-	logger.Warnf(format, args)
+	logger.Warnf(format, args...)
 }
 
 // ErrorCtxf logs message at Error level.
 func (logger *DefaultCtxLogger) ErrorCtxf(ctx context.Context, format string, args ...interface{}) {
-	logger.Errorf(format, args)
+	logger.Errorf(format, args...)
 }
 
 type GAELoggerFac struct {
